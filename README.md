@@ -1,47 +1,51 @@
 # BPSR-AutoUltimate
 
-Real-time remote key synchronization desktop app. A group leader's keypresses are broadcast over WebSocket and simulated on all member machines via `pynput`. The primary target is gaming (e.g., synchronized `R` presses).
+Aplicación de escritorio para sincronización remota de teclas en tiempo real. Las pulsaciones del líder de un grupo se transmiten por WebSocket y se simulan en los equipos de todos los miembros mediante `pynput`. El uso principal es el gaming (p. ej., pulsaciones de `R` sincronizadas).
 
-## Visibility
+## Contacto
 
-| Component | Visibility | Reason |
+Podéis encontrarme en Discord como Joseleelsuper, dentro de la [Guild HusaresAlados](https://discord.gg/rY9mt4Gn8d).
+
+## Visibilidad
+
+| Componente | Visibilidad | Motivo |
 |---|---|---|
-| Client code (`src/`, `main.py`, `requirements.txt`) | **Public** | Open for inspection and contribution |
-| Server code | **Private** | Hosted and maintained separately |
-| `compile.py` | **Private** | Contains the encryption logic for the API key used to authenticate against the server. Making it public would allow reverse-engineering the key protection scheme |
+| Código del cliente (`src/`, `main.py`, `requirements.txt`) | **Público** | Abierto para inspección y contribución |
+| Código del servidor | **Privado** | Alojado y mantenido por separado |
+| `compile.py` | **Privado** | Contiene la lógica de cifrado de la API key usada para autenticarse con el servidor. Hacerlo público permitiría hacer ingeniería inversa del esquema de protección |
 
-> The client connects to the server using an API key that is encrypted at build time. The compilation script (`compile.py`) handles that encryption and is therefore kept private to prevent analysis of the protection mechanism.
+> El cliente se conecta al servidor usando una API key cifrada en tiempo de compilación. El script de compilación (`compile.py`) gestiona ese cifrado y, por tanto, se mantiene privado para evitar el análisis del mecanismo de protección.
 
-## Architecture
+## Arquitectura
 
 ```
 main.py → App → [GUI, Network, Input, Models, Config]
-                  EventBus (thread-safe pub/sub glue)
+                  EventBus (cola pub/sub thread-safe)
 ```
 
-- `src/gui/` — `customtkinter` views
-- `src/network/` — WebSocket client + EventBus
-- `src/input/` — Key listener and simulator (`pynput`)
-- `src/models/` — Pure dataclass models
-- `src/config.py` — Singleton configuration (dev `.env` / production `_secrets.py`)
+- `src/gui/` — Vistas con `customtkinter`
+- `src/network/` — Cliente WebSocket + EventBus
+- `src/input/` — Escucha y simulación de teclas (`pynput`)
+- `src/models/` — Modelos de datos puros (`@dataclass`)
+- `src/config.py` — Configuración singleton (dev `.env` / producción `_secrets.py`)
 
-## Requirements
+## Requisitos
 
 ```
 pip install -r requirements.txt
 ```
 
-## Running (development)
+## Ejecución (desarrollo)
 
 ```powershell
 python main.py
 ```
 
-Requires admin privileges on some systems for key simulation.
+En algunos sistemas puede requerir permisos de administrador para la simulación de teclas.
 
-### Environment variables
+### Variables de entorno
 
-| Variable | Default |
+| Variable | Por defecto |
 |---|---|
 | `BPSR_SERVER_URL` | `ws://localhost:4061/bpsr/ws` |
 | `X-API-KEY` | `""` |
@@ -49,6 +53,6 @@ Requires admin privileges on some systems for key simulation.
 | `BPSR_MAX_RECONNECT_DELAY` | `30.0` |
 | `BPSR_THEME` | `dark-blue` |
 
-## License
+## Licencia
 
-See [LICENSE](LICENSE).
+Ver [LICENSE](LICENSE).
