@@ -25,6 +25,8 @@ Messages sent:
 from __future__ import annotations
 
 import asyncio
+import hashlib
+import hmac
 import json
 import threading
 from typing import Any, Dict, Optional
@@ -173,9 +175,26 @@ class WSClient:
 
     async def _authenticate_and_listen(self, ws: Any) -> None:
         """Authenticate with the server and listen for messages."""
+        # Step 1: Wait for the server's challenge nonce.
+        raw = await ws.recv()
+        challenge = json.loads(raw)
+        if challenge.get("type") != "challenge":
+            self._bus.emit("connection_error", "Unexpected server message during auth")
+            self._running = False
+            return
+
+        nonce = challenge.get("nonce", "")
+
+        # Step 2: Sign the nonce with the API key — key never leaves the process.
+        signed = hmac.new(
+            CONFIG.api_key.encode(),
+            nonce.encode(),
+            hashlib.sha256,
+        ).hexdigest()
+
         auth_msg = {
             "type": "auth",
-            "api_key": CONFIG.api_key,
+            "hmac": signed,
             "username": self._username,
         }
         await ws.send(json.dumps(auth_msg))
