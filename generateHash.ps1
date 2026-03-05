@@ -1,0 +1,1 @@
+(Get-FileHash -Algorithm SHA256 ./dist/BPSR-AutoUltimate.exe).Hash > hash.txt

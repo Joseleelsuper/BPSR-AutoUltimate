@@ -1,0 +1,6 @@
+customtkinter==5.2.2
+websockets==15.0.1
+pynput==1.8.1
+python-dotenv==1.1.1
+cryptography==46.0.5
+pyinstaller==6.19.0
