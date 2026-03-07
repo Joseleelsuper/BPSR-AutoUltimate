@@ -10,6 +10,7 @@ class User:
     connection_id: str
     username: str
     role: str = "member"  # "leader" | "member"
+    platform: str = "desktop"  # "desktop" | "mobile"
 
     @classmethod
     def from_dict(cls, data: dict) -> "User":
@@ -17,6 +18,7 @@ class User:
             connection_id=data.get("connection_id", ""),
             username=data.get("username", ""),
             role=data.get("role", "member"),
+            platform=data.get("platform", "desktop"),
         )
 
 

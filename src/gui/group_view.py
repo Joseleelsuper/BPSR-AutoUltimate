@@ -142,8 +142,9 @@ class GroupView(BaseView):
 
         for i, member in enumerate(self._current_group.members):
             is_leader = member.role == "leader"
-            icon = "👑" if is_leader else "👤"
-            text = f"  {icon}  {member.username}"
+            is_mobile = member.platform == "mobile"
+            role_icon = "👑" if is_leader else "👤"
+            text = f"  {role_icon}  {member.username}"
 
             row_frame = ctk.CTkFrame(self._members_scroll, fg_color="transparent")
             row_frame.grid(row=i, column=0, sticky="ew", pady=2)
@@ -173,16 +174,18 @@ class GroupView(BaseView):
                     command=lambda u=member.username: self._on_ban(u),
                 ).grid(row=0, column=1, padx=(4, 10))
 
-                ctk.CTkButton(
-                    row_frame,
-                    text="👑",
-                    width=36,
-                    height=24,
-                    fg_color="#b8860b",
-                    hover_color="#8b6508",
-                    font=ctk.CTkFont(size=11),
-                    command=lambda u=member.username: self._on_transfer_leader(u),
-                ).grid(row=0, column=2, padx=(0, 4))
+                # Mobile users cannot become leader — hide the transfer button
+                if not is_mobile:
+                    ctk.CTkButton(
+                        row_frame,
+                        text="👑",
+                        width=36,
+                        height=24,
+                        fg_color="#b8860b",
+                        hover_color="#8b6508",
+                        font=ctk.CTkFont(size=11),
+                        command=lambda u=member.username: self._on_transfer_leader(u),
+                    ).grid(row=0, column=2, padx=(0, 4))
 
     def _render_locks(self) -> None:
         for w in self._locks_frame.winfo_children():
