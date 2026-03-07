@@ -69,10 +69,41 @@ python main.py
 Los toques se imprimirán por consola en lugar de ejecutarse.
 
 ### Compilar APK para Android
-```bash
-# Requiere: Linux o WSL, JDK, Android SDK/NDK
-pip install buildozer cython
 
+#### Dependencias del sistema (Ubuntu/WSL)
+```bash
+sudo apt-get install -y \
+    unzip \
+    autoconf automake libtool pkg-config \
+    libffi-dev \
+    ccache \
+    git zip
+```
+
+#### Herramientas Python
+```bash
+pip install buildozer cython
+```
+
+#### Android SDK — cmdline-tools
+Buildozer necesita `sdkmanager` en la ruta legacy. Descarga las *command-line tools* y crea el enlace simbólico:
+```bash
+cd ~/.buildozer/android/platform/android-sdk
+wget "https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip" -O cmdline-tools.zip
+unzip cmdline-tools.zip && rm cmdline-tools.zip
+mkdir -p cmdline-tools/latest
+mv cmdline-tools/bin cmdline-tools/latest/bin
+mv cmdline-tools/lib cmdline-tools/latest/lib
+mkdir -p tools/bin
+ln -sf ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager tools/bin/sdkmanager
+yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
+```
+
+> **Rendimiento en WSL**: construir desde `/mnt/c/` es muy lento por el overhead del sistema de archivos.
+> Se recomienda copiar el proyecto al filesystem nativo de WSL (`~/BPSR-AutoUltimate`) y compilar desde allí.
+
+#### Compilar
+```bash
 # Generar APK de debug
 buildozer android debug
 
