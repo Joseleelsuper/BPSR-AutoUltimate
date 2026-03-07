@@ -17,9 +17,6 @@ Events emitted:
     leader_changed     (new_leader_id: str, new_leader_username: str)
     kicked             (reason: str)
     server_error       (code: str, message: str)
-
-Messages sent:
-    transfer_leader    { type, target_username }
 """
 
 from __future__ import annotations
@@ -196,6 +193,7 @@ class WSClient:
             "type": "auth",
             "hmac": signed,
             "username": self._username,
+            "device_type": "mobile",
         }
         await ws.send(json.dumps(auth_msg))
 
@@ -274,8 +272,6 @@ class WSClient:
             self._bus.emit("kicked", msg.get("reason", ""))
 
         elif msg_type == "error":
-            self._bus.emit("server_error", msg.get("code", ""), msg.get("message", ""))
-
-        else:
-            # Unknown message — ignore gracefully
-            pass
+            self._bus.emit(
+                "server_error", msg.get("code", ""), msg.get("message", "")
+            )

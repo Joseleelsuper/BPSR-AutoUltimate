@@ -1,4 +1,5 @@
-"""Data models for the BPSR client."""
+"""Data models for the BPSR mobile client."""
+
 from __future__ import annotations
 
 from dataclasses import dataclass, field
@@ -10,6 +11,7 @@ class User:
     connection_id: str
     username: str
     role: str = "member"  # "leader" | "member"
+    device_type: str = "desktop"  # "desktop" | "mobile"
 
     @classmethod
     def from_dict(cls, data: dict) -> "User":
@@ -17,6 +19,7 @@ class User:
             connection_id=data.get("connection_id", ""),
             username=data.get("username", ""),
             role=data.get("role", "member"),
+            device_type=data.get("device_type", "desktop"),
         )
 
 

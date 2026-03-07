@@ -1,7 +1,7 @@
-"""Application configuration.
+"""Application configuration for mobile.
 
-Loads settings from encrypted secrets (production build) or environment
-variables / .env file (development).
+Loads settings from environment variables / .env file (development)
+or from hardcoded defaults for production Android builds.
 """
 
 from __future__ import annotations
@@ -16,45 +16,27 @@ try:
 except ImportError:
     pass
 
-# Production builds embed an auto-generated _secrets.py with encrypted values.
-# During development that file does not exist yet, so we fall back to env vars.
-try:
-    from src._secrets import (  # pyright: ignore[reportMissingImports]
-        get_api_key as _get_api_key,
-        get_server_url as _get_server_url,
-    )
-
-    _SECRETS_AVAILABLE = True
-except ImportError:
-    _SECRETS_AVAILABLE = False
-
 
 class Config:
-    """Centralized configuration for the BPSR client."""
+    """Centralized configuration for the BPSR mobile client."""
 
     _instance: Optional["Config"] = None
 
     def __init__(self) -> None:
-        if _SECRETS_AVAILABLE:
-            # Encrypted production build — values are decrypted at runtime
-            self.server_url: str = _get_server_url()  # pyright: ignore[reportPossiblyUnboundVariable]
-            self.api_key: str = _get_api_key()  # pyright: ignore[reportPossiblyUnboundVariable]
-        else:
-            # Development fallback — configure via .env or environment variables.
-            # No default values here: hardcoded secrets would end up in the
-            # compiled bytecode even if this branch never executes at runtime.
-            self.server_url = os.getenv(
-                "BPSR_SERVER_URL", "ws://localhost:4061/bpsr/ws"
-            )
-            self.api_key = os.getenv("X-API-KEY", "")
-
+        self.server_url: str = os.getenv(
+            "BPSR_SERVER_URL", "ws://localhost:4061/bpsr/ws"
+        )
+        self.api_key: str = os.getenv("X-API-KEY", "")
         self.reconnect_delay: float = float(os.getenv("BPSR_RECONNECT_DELAY", "3.0"))
         self.max_reconnect_delay: float = float(
             os.getenv("BPSR_MAX_RECONNECT_DELAY", "30.0")
         )
-        self.app_title: str = "BPSR AutoUltimate"
-        self.app_geometry: str = "800x550"
-        self.theme: str = os.getenv("BPSR_THEME", "dark-blue")
+
+        # Tap positions as screen ratios: key_name → (x_ratio, y_ratio)
+        # Reference: (1680, 940) on a 2400×1080 display
+        self.tap_positions: dict[str, tuple[float, float]] = {
+            "r": (1680 / 2400, 940 / 1080),
+        }
 
     @classmethod
     def instance(cls) -> "Config":

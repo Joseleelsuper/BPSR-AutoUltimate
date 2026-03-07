@@ -1,0 +1,357 @@
+#:kivy 2.3.0
+#:import dp kivy.metrics.dp
+#:import sp kivy.metrics.sp
+
+# ── Palette ─────────────────────────────────────────────────────
+#:set BG        (0.071, 0.071, 0.071, 1)
+#:set SURFACE   (0.118, 0.118, 0.118, 1)
+#:set PRIMARY   (0.098, 0.463, 0.824, 1)
+#:set DANGER    (0.800, 0.267, 0.267, 1)
+#:set ERROR_CLR (0.812, 0.400, 0.475, 1)
+#:set WHITE     (1, 1, 1, 1)
+#:set GRAY      (0.690, 0.690, 0.690, 1)
+
+# ================================================================
+#  LOGIN SCREEN
+# ================================================================
+<LoginScreen>:
+    canvas.before:
+        Color:
+            rgba: BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(32), dp(32), dp(32), dp(32)
+        spacing: dp(12)
+
+        Widget:
+            size_hint_y: 0.2
+
+        Label:
+            text: 'BPSR AutoUltimate'
+            font_size: sp(28)
+            bold: True
+            color: WHITE
+            size_hint_y: None
+            height: dp(40)
+
+        Label:
+            text: 'Versión Móvil'
+            font_size: sp(14)
+            color: GRAY
+            size_hint_y: None
+            height: dp(24)
+
+        Widget:
+            size_hint_y: None
+            height: dp(16)
+
+        Label:
+            text: 'Introduce nombre de usuario'
+            font_size: sp(15)
+            color: GRAY
+            size_hint_y: None
+            height: dp(28)
+
+        TextInput:
+            id: username_input
+            hint_text: 'Username'
+            multiline: False
+            size_hint_y: None
+            height: dp(48)
+            font_size: sp(16)
+            padding: dp(16), dp(12), dp(16), dp(12)
+            background_normal: ''
+            background_active: ''
+            background_color: SURFACE
+            foreground_color: WHITE
+            hint_text_color: GRAY
+            cursor_color: PRIMARY
+            on_text_validate: root.on_submit()
+
+        Button:
+            id: login_btn
+            text: 'Entrar'
+            size_hint_y: None
+            height: dp(48)
+            font_size: sp(16)
+            bold: True
+            background_normal: ''
+            background_color: PRIMARY
+            color: WHITE
+            on_release: root.on_submit()
+
+        Label:
+            text: root.error_text
+            font_size: sp(13)
+            color: ERROR_CLR
+            size_hint_y: None
+            height: dp(24)
+
+        Label:
+            text: root.status_text
+            font_size: sp(12)
+            color: GRAY
+            size_hint_y: None
+            height: dp(20)
+
+        Widget:
+            size_hint_y: 0.2
+
+# ================================================================
+#  GROUP CARD (lobby list item)
+# ================================================================
+<GroupCard>:
+    orientation: 'horizontal'
+    size_hint_y: None
+    height: dp(72)
+    padding: dp(12), dp(8), dp(12), dp(8)
+    spacing: dp(8)
+
+    canvas.before:
+        Color:
+            rgba: SURFACE
+        RoundedRectangle:
+            pos: self.pos
+            size: self.size
+            radius: [dp(8)]
+
+    BoxLayout:
+        orientation: 'vertical'
+        size_hint_x: 0.65
+
+        Label:
+            text: root.group_name
+            font_size: sp(15)
+            bold: True
+            color: WHITE
+            halign: 'left'
+            text_size: self.size
+            valign: 'bottom'
+
+        Label:
+            text: root.member_info
+            font_size: sp(12)
+            color: GRAY
+            halign: 'left'
+            text_size: self.size
+            valign: 'top'
+
+    Button:
+        text: '+ Unirse'
+        size_hint: None, None
+        size: dp(100), dp(40)
+        pos_hint: {'center_y': 0.5}
+        font_size: sp(13)
+        background_normal: ''
+        background_color: PRIMARY
+        color: WHITE
+        on_release: root.join()
+
+# ================================================================
+#  LOBBY SCREEN
+# ================================================================
+<LobbyScreen>:
+    canvas.before:
+        Color:
+            rgba: BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(16), dp(16), dp(16), dp(8)
+        spacing: dp(8)
+
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(40)
+
+            Label:
+                text: 'Grupos disponibles'
+                font_size: sp(20)
+                bold: True
+                color: WHITE
+                halign: 'left'
+                text_size: self.size
+                valign: 'center'
+
+            Label:
+                id: user_label
+                text: ''
+                font_size: sp(12)
+                color: GRAY
+                halign: 'right'
+                text_size: self.size
+                valign: 'center'
+                size_hint_x: 0.4
+
+        # Info label
+        Label:
+            text: '\U0001f4f1 Solo puedes unirte a grupos creados desde escritorio'
+            font_size: sp(11)
+            color: GRAY
+            size_hint_y: None
+            height: dp(24)
+            halign: 'left'
+            text_size: self.size
+
+        # Groups scroll area
+        ScrollView:
+            do_scroll_x: False
+
+            GridLayout:
+                id: groups_container
+                cols: 1
+                spacing: dp(8)
+                size_hint_y: None
+                height: self.minimum_height
+
+        # Status bar
+        Label:
+            text: root.status_text
+            font_size: sp(11)
+            color: GRAY
+            size_hint_y: None
+            height: dp(24)
+            halign: 'left'
+            text_size: self.size
+
+# ================================================================
+#  GROUP SCREEN
+# ================================================================
+<GroupScreen>:
+    canvas.before:
+        Color:
+            rgba: BG
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: dp(16), dp(16), dp(16), dp(8)
+        spacing: dp(8)
+
+        # Header
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: None
+            height: dp(48)
+            spacing: dp(8)
+
+            BoxLayout:
+                orientation: 'vertical'
+
+                Label:
+                    text: root.group_name_text
+                    font_size: sp(18)
+                    bold: True
+                    color: WHITE
+                    halign: 'left'
+                    text_size: self.size
+                    valign: 'bottom'
+
+                Label:
+                    text: root.role_text
+                    font_size: sp(12)
+                    color: GRAY
+                    halign: 'left'
+                    text_size: self.size
+                    valign: 'top'
+
+            Button:
+                text: 'Salir'
+                size_hint: None, None
+                size: dp(100), dp(36)
+                pos_hint: {'center_y': 0.5}
+                font_size: sp(13)
+                background_normal: ''
+                background_color: DANGER
+                color: WHITE
+                on_release: root.on_leave_group()
+
+        # Separator
+        Widget:
+            size_hint_y: None
+            height: dp(1)
+            canvas:
+                Color:
+                    rgba: 0.2, 0.2, 0.2, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+        # Members section
+        Label:
+            text: 'Miembros'
+            font_size: sp(15)
+            bold: True
+            color: WHITE
+            size_hint_y: None
+            height: dp(30)
+            halign: 'left'
+            text_size: self.size
+
+        ScrollView:
+            do_scroll_x: False
+            size_hint_y: 0.5
+
+            GridLayout:
+                id: members_container
+                cols: 1
+                size_hint_y: None
+                height: self.minimum_height
+
+        # Separator
+        Widget:
+            size_hint_y: None
+            height: dp(1)
+            canvas:
+                Color:
+                    rgba: 0.2, 0.2, 0.2, 1
+                Rectangle:
+                    pos: self.pos
+                    size: self.size
+
+        # Key locks section
+        Label:
+            text: 'Estado de teclas'
+            font_size: sp(15)
+            bold: True
+            color: WHITE
+            size_hint_y: None
+            height: dp(30)
+            halign: 'left'
+            text_size: self.size
+
+        GridLayout:
+            id: locks_container
+            cols: 1
+            size_hint_y: None
+            height: self.minimum_height
+
+        # Info
+        Label:
+            text: 'Esperando instrucciones del líder...'
+            font_size: sp(12)
+            color: GRAY
+            size_hint_y: None
+            height: dp(30)
+            halign: 'center'
+
+        # Status
+        Label:
+            text: root.status_text
+            font_size: sp(11)
+            color: GRAY
+            size_hint_y: None
+            height: dp(24)
+            halign: 'left'
+            text_size: self.size

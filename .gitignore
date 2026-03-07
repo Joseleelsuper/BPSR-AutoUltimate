@@ -210,3 +210,6 @@ __marimo__/
 dist/*
 /.vscode
 /compile.py
+/.venv.linux
+/.buildozer
+/bin

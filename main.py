@@ -1,21 +1,16 @@
-"""
+"""Punto de entrada de BPSR AutoUltimate (versión móvil).
 
-Punto de entrada de BPSR AutoUltimate.
-
-Nota: para simular teclas en aplicaciones que corren como administrador
-(algunos juegos), ejecuta este script manualmente como administrador.
-Para uso normal no se necesitan privilegios elevados.
-
+Requiere Kivy para la interfaz gráfica.
+Para compilar para Android, usar Buildozer (ver buildozer.spec).
 """
 
 from __future__ import annotations
 
-from src.app import App
+from src.app import BPSRApp
 
 
 def main():
-    app = App()
-    app.run()
+    BPSRApp().run()
 
 
 if __name__ == "__main__":

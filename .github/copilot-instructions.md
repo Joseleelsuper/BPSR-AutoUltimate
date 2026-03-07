@@ -1,51 +1,57 @@
-# BPSR-AutoUltimate — Copilot Instructions
+# BPSR-AutoUltimate — Copilot Instructions (Mobile Branch)
 
 ## Purpose
-Real-time remote key synchronization desktop app. A group leader's keypresses are broadcast over WebSocket and simulated on all member machines via `pynput`. The primary target is gaming (e.g., synchronized `R` presses).
+Real-time remote key synchronization **mobile** app for Android. A group leader (desktop) sends keypresses via WebSocket; the mobile client simulates screen taps at proportional coordinates using `input tap`. Built with Kivy + Buildozer.
 
 ## Architecture
-`App` (`src/app.py`) is the central wiring hub. All subsystems are connected exclusively through `EventBus` — no layer imports directly from another (except `App` and views calling `self.app.*`).
+`BPSRApp` (`src/app.py`) is the central wiring hub. All subsystems are connected through `EventBus` — no layer imports directly from another (except screens via `App.get_running_app()`).
 
 ```
-main.py → App → [GUI, Network, Input, Models, Config]
-                  EventBus (thread-safe pub/sub glue)
+main.py → BPSRApp (Kivy) → [GUI, Network, Input, Models, Config]
+                              EventBus (thread-safe pub/sub glue)
 ```
 
 Key directories:
-- `src/gui/` — `customtkinter` views extending `BaseView`
+- `src/gui/` — Kivy `Screen` subclasses + `bpsr.kv` layout
 - `src/network/` — `WSClient` (websockets, async) + `EventBus` (singleton)
-- `src/input/` — `KeyHandler` facade wrapping `KeyListener` + `KeySimulator` (pynput)
+- `src/input/` — `TouchHandler` (Android `input tap` via subprocess)
 - `src/models/` — Pure `@dataclass` models with `from_dict()` factories
-- `src/config.py` — Singleton with dev (`.env`) and production (`_secrets.py`) modes
-- `compile.py` — Full build script: generates secrets, runs PyInstaller
+- `src/config.py` — Singleton loading from env vars / `.env`
+- `buildozer.spec` — Android APK build configuration
 
 ## Threading Model
-`WSClient` runs an `asyncio` event loop in a **daemon thread**. To send from the GUI thread into that loop use `asyncio.run_coroutine_threadsafe()`. EventBus callbacks that touch GUI widgets **must** schedule via `window.after(0, lambda: ...)` — never update widgets from a background thread directly.
+`WSClient` runs an `asyncio` event loop in a **daemon thread**. EventBus callbacks that touch Kivy widgets **must** schedule via `Clock.schedule_once(callback, 0)`.
 
-## Design Patterns to Follow
-- **Singleton**: `EventBus` and `Config` use a `_instance` class variable and `classmethod instance()` factory.
-- **Template Method**: All views extend `BaseView(ctk.CTkFrame)` and implement `_build_ui()`. Use optional `on_show()` / `on_hide()` lifecycle hooks.
-- **Facade**: `KeyHandler` wraps `KeyListener` and `KeySimulator`; `App` only touches `KeyHandler`.
-- **Models**: Always `@dataclass` with a `@classmethod from_dict(cls, data: dict)` factory. Nested objects (e.g., `User` inside `Group`) are deserialized inside `from_dict`.
-- **EventBus**: Callbacks copy the subscriber list before iterating (deadlock prevention). New event names must be documented at the call site.
+## Mobile-Specific Constraints
+- Mobile users **cannot** be group leaders (no key capture capability)
+- Mobile users **cannot** create groups (creation = becoming leader)
+- `simulate_key` events are converted to screen taps via `TouchHandler`
+- Tap positions are defined as screen ratios in `Config.tap_positions`
+- Root (or Shizuku) required for Android tap simulation outside the app
+
+## Design Patterns
+- **Singleton**: `EventBus` and `Config` use `_instance` + `classmethod instance()`.
+- **ScreenManager**: Kivy's built-in screen navigation (`login` → `lobby` → `group`).
+- **Facade**: `TouchHandler` wraps Android-specific tap logic; `App` only touches `TouchHandler`.
+- **Models**: Always `@dataclass` with `@classmethod from_dict(cls, data: dict)`.
+- **EventBus**: Callbacks copy subscriber list before iterating (deadlock prevention).
 
 ## Coding Conventions
 - Every module starts with `from __future__ import annotations`.
-- Avoid circular imports: use `TYPE_CHECKING` guard for type-only imports (see `base_view.py`).
-- New views: subclass `BaseView`, implement `_build_ui()`, register in `App._setup_gui()`.
-- New network events: add handler in `App.__init__` with `self._bus.subscribe(...)` and a matching `_on_*` private method.
-- Config values are always accessed via `Config.instance()`.
+- Avoid circular imports: screens access app via `App.get_running_app()`.
+- New screens: subclass `Screen`, define layout in `bpsr.kv`, register in `BPSRApp.build()`.
+- New network events: subscribe in `BPSRApp._subscribe_events()`.
+- Config values always via `Config.instance()`.
 
 ## Run & Build
-```powershell
-# Development (requires admin for key simulation in some apps)
+```bash
+# Development (desktop — taps are printed to console)
 python main.py
 
-# Production — set BPSR_SERVER_URL and X-API-KEY in .env first
-python compile.py          # output: dist/BPSR-AutoUltimate.exe
+# Android APK (requires Linux/WSL + Android SDK)
+pip install buildozer cython
+buildozer android debug
 ```
-
-`compile.py` encrypts the API key + server URL into `src/_secrets.py` (auto-deleted post-build) using PBKDF2-HMAC-SHA256 + Fernet. Never commit `_secrets.py` or `.env`.
 
 ## Environment Variables (dev)
 | Variable | Default |
@@ -54,8 +60,7 @@ python compile.py          # output: dist/BPSR-AutoUltimate.exe
 | `X-API-KEY` | `""` |
 | `BPSR_RECONNECT_DELAY` | `3.0` |
 | `BPSR_MAX_RECONNECT_DELAY` | `30.0` |
-| `BPSR_THEME` | `dark-blue` |
 
 ## Key WebSocket Message Types
-Outbound: `auth`, `list_groups`, `create_group`, `join_group`, `leave_group`, `toggle_key_lock`, `key_press`  
-Inbound: `auth_ok`, `groups_list`, `group_joined`, `group_updated`, `simulate_key`, `error`
+Outbound: `auth` (with `device_type: "mobile"`), `list_groups`, `join_group`, `leave_group`
+Inbound: `auth_ok`, `groups_list`, `group_joined`, `group_updated`, `simulate_key`, `kicked`, `error`

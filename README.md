@@ -1,58 +1,133 @@
-# BPSR-AutoUltimate
+# BPSR AutoUltimate — Versión Móvil (Android)
 
-Aplicación de escritorio para sincronización remota de teclas en tiempo real. Las pulsaciones del líder de un grupo se transmiten por WebSocket y se simulan en los equipos de todos los miembros mediante `pynput`. El uso principal es el gaming (p. ej., pulsaciones de `R` sincronizadas).
-
-## Contacto
-
-Podéis encontrarme en Discord como Joseleelsuper, dentro de la [Guild HusaresAlados](https://discord.gg/rY9mt4Gn8d).
-
-## Visibilidad
-
-| Componente | Visibilidad | Motivo |
-|---|---|---|
-| Código del cliente (`src/`, `main.py`, `requirements.txt`) | **Público** | Abierto para inspección y contribución |
-| Código del servidor | **Privado** | Alojado y mantenido por separado |
-| `compile.py` | **Privado** | Contiene la lógica de cifrado de la API key usada para autenticarse con el servidor. Hacerlo público permitiría hacer ingeniería inversa del esquema de protección |
-
-> El cliente se conecta al servidor usando una API key cifrada en tiempo de compilación. El script de compilación (`compile.py`) gestiona ese cifrado y, por tanto, se mantiene privado para evitar el análisis del mecanismo de protección.
+Aplicación de sincronización remota de pulsaciones en tiempo real para dispositivos Android.
+El líder del grupo (desde escritorio) pulsa una tecla y todos los miembros móviles reciben un toque en pantalla en la posición configurada.
 
 ## Arquitectura
 
 ```
-main.py → App → [GUI, Network, Input, Models, Config]
-                  EventBus (cola pub/sub thread-safe)
+main.py → BPSRApp (Kivy)
+  ├── EventBus      (pub/sub thread-safe)
+  ├── WSClient      (WebSocket en hilo background con asyncio)
+  ├── TouchHandler   (simula toques en Android)
+  └── ScreenManager
+        ├── LoginScreen
+        ├── LobbyScreen
+        └── GroupScreen
 ```
 
-- `src/gui/` — Vistas con `customtkinter`
-- `src/network/` — Cliente WebSocket + EventBus
-- `src/input/` — Escucha y simulación de teclas (`pynput`)
-- `src/models/` — Modelos de datos puros (`@dataclass`)
-- `src/config.py` — Configuración singleton (dev `.env` / producción `_secrets.py`)
+### Diferencias con la versión de escritorio
 
-## Requisitos
+| Aspecto | Escritorio | Móvil |
+|---|---|---|
+| GUI | customtkinter | Kivy |
+| Entrada | pynput (teclado) | TouchHandler (input tap) |
+| Rol | Puede ser líder o miembro | **Solo miembro** |
+| Acción al recibir `simulate_key` | Pulsa tecla | Toque en pantalla |
+| Compilación | PyInstaller (.exe) | Buildozer (.apk) |
 
+## Posición de toque
+
+Cuando el líder pulsa **R**, el móvil ejecuta un toque en la posición calculada como proporción de la resolución:
+
+| Tecla | Referencia (2400×1080) | Ratio X | Ratio Y |
+|---|---|---|---|
+| R | (1680, 940) | 0.700 | 0.870 |
+
+En cualquier dispositivo la posición se escala automáticamente:
 ```
+tap_x = ancho_pantalla × 0.700
+tap_y = alto_pantalla  × 0.870
+```
+
+## Requisitos del dispositivo
+
+- **Android 7.0+** (API 24)
+- **Root** recomendado para simulación de toques fuera de la app
+  - Con root: `su -c "input tap X Y"`
+  - Sin root: funciona en algunos ROMs o con Shizuku
+
+## Desarrollo
+
+### Requisitos
+```bash
 pip install -r requirements.txt
 ```
 
-## Ejecución (desarrollo)
-
-```powershell
-python main.py
-```
-
-En algunos sistemas puede requerir permisos de administrador para la simulación de teclas.
-
-### Variables de entorno
-
-| Variable | Por defecto |
+### Variables de entorno (.env)
+| Variable | Default |
 |---|---|
 | `BPSR_SERVER_URL` | `ws://localhost:4061/bpsr/ws` |
 | `X-API-KEY` | `""` |
 | `BPSR_RECONNECT_DELAY` | `3.0` |
 | `BPSR_MAX_RECONNECT_DELAY` | `30.0` |
-| `BPSR_THEME` | `dark-blue` |
+
+### Ejecutar en escritorio (testing)
+```bash
+python main.py
+```
+Los toques se imprimirán por consola en lugar de ejecutarse.
+
+### Compilar APK para Android
+```bash
+# Requiere: Linux o WSL, JDK, Android SDK/NDK
+pip install buildozer cython
+
+# Generar APK de debug
+buildozer android debug
+
+# El APK se genera en bin/
+```
+
+## Protocolo WebSocket
+
+### Autenticación
+El cliente móvil envía `device_type: "mobile"` durante la autenticación HMAC:
+```json
+{ "type": "auth", "hmac": "<HMAC-SHA256>", "username": "Jugador1", "device_type": "mobile" }
+```
+
+### Restricciones para dispositivos móviles
+- No pueden **crear** grupos (requiere ser líder)
+- No pueden **ser promovidos** a líder
+- Si el líder se desconecta y no quedan usuarios de escritorio, el grupo se destruye
+- Reciben `simulate_key` que se convierte en un toque en pantalla
+
+### Mensajes soportados
+| Dirección | Tipo | Descripción |
+|---|---|---|
+| → Servidor | `list_groups` | Listar grupos disponibles |
+| → Servidor | `join_group` | Unirse a un grupo |
+| → Servidor | `leave_group` | Salir del grupo |
+| ← Servidor | `auth_ok` | Autenticación exitosa |
+| ← Servidor | `groups_list` | Lista de grupos |
+| ← Servidor | `group_joined` | Confirmación de unión |
+| ← Servidor | `group_update` | Actualización del grupo |
+| ← Servidor | `simulate_key` | Orden de simular toque |
+| ← Servidor | `kicked` | Expulsado del grupo |
+| ← Servidor | `error` | Error del servidor |
+
+## Estructura de archivos
+
+```
+main.py                 # Punto de entrada
+buildozer.spec          # Config de compilación Android
+requirements.txt        # Dependencias Python
+src/
+  app.py                # BPSRApp (Kivy App)
+  config.py             # Config singleton
+  gui/
+    bpsr.kv             # Layouts Kivy
+    screens.py          # LoginScreen, LobbyScreen, GroupScreen
+  input/
+    touch_handler.py    # Simulación de toques Android
+  models/
+    group.py            # Dataclasses User, Group
+  network/
+    event_bus.py        # EventBus singleton thread-safe
+    ws_client.py        # WebSocket client con device_type: "mobile"
+```
 
 ## Licencia
 
-Ver [LICENSE](LICENSE).
+MIT — ver [LICENSE](LICENSE).
