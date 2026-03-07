@@ -210,3 +210,6 @@ __marimo__/
 dist/*
 /.vscode
 /compile.py
+/.buildozer
+/_version_info.txt
+/src/_secrets.py
