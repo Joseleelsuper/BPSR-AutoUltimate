@@ -99,9 +99,6 @@ ln -sf ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkman
 yes | ~/.buildozer/android/platform/android-sdk/cmdline-tools/latest/bin/sdkmanager --licenses
 ```
 
-> **Rendimiento en WSL**: construir desde `/mnt/c/` es muy lento por el overhead del sistema de archivos.
-> Se recomienda copiar el proyecto al filesystem nativo de WSL (`~/BPSR-AutoUltimate`) y compilar desde allí.
-
 #### Compilar
 ```bash
 # Generar APK de debug
