@@ -72,6 +72,7 @@ class KeyListener:
         self._listener: Optional[keyboard.Listener] = None
         self._is_leader = False
         self._locked_keys: Set[str] = set()
+        self._held_keys: Set[str] = set()  # tracks keys currently held to ignore key-repeat
 
     def start(self) -> None:
         """Start the global key listener in a background thread."""
@@ -89,6 +90,7 @@ class KeyListener:
         if self._listener:
             self._listener.stop()
             self._listener = None
+        self._held_keys.clear()
 
     def set_leader(self, is_leader: bool) -> None:
         """Update whether the local user is the group leader."""
@@ -111,11 +113,15 @@ class KeyListener:
         if self._is_leader:
             key_name = self._resolve_key_name(key)
             if key_name and key_name in self._locked_keys:
-                self._bus.emit("local_key_press", key_name)
+                # Ignore OS key-repeat: only fire on the first press, not while held
+                if key_name not in self._held_keys:
+                    self._held_keys.add(key_name)
+                    self._bus.emit("local_key_press", key_name)
 
     def _on_release(self, key: Key | KeyCode | None) -> None:
-        # We don't need to handle key releases for this application.
-        pass
+        key_name = self._resolve_key_name(key)
+        if key_name:
+            self._held_keys.discard(key_name)
 
     @staticmethod
     def _resolve_key_name(key: Key | KeyCode | None) -> Optional[str]:
